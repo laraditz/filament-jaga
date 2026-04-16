@@ -6,5 +6,5 @@ use Filament\Pages\Page;
 
 class JagaDashboard extends Page
 {
-    protected static string $view = 'filament-jaga::pages.dashboard';
+    protected string $view = 'filament-jaga::pages.dashboard';
 }
