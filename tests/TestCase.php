@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laraditz\FilamentJaga\FilamentJagaPlugin;
 use Laraditz\FilamentJaga\FilamentJagaServiceProvider;
 use Laraditz\Jaga\JagaServiceProvider;
+use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -31,6 +32,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
+            LivewireServiceProvider::class,
             SupportServiceProvider::class,
             FilamentServiceProvider::class,
             JagaServiceProvider::class,
