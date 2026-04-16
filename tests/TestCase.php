@@ -48,7 +48,7 @@ abstract class TestCase extends BaseTestCase
 
         // Orchestra Testbench v10 ships a users migration
         $this->loadMigrationsFrom(
-            base_path('vendor/orchestra/testbench-core/laravel/migrations')
+            __DIR__ . '/../vendor/orchestra/testbench-core/laravel/migrations'
         );
     }
 
@@ -60,5 +60,9 @@ abstract class TestCase extends BaseTestCase
             'database' => ':memory:',
             'prefix'   => '',
         ]);
+
+        // Use the test User model that has HasRoles
+        $app['config']->set('filament-jaga.user_model', \Laraditz\FilamentJaga\Tests\Models\User::class);
+        $app['config']->set('auth.providers.users.model', \Laraditz\FilamentJaga\Tests\Models\User::class);
     }
 }

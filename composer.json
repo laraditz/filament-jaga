@@ -20,7 +20,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Laraditz\\FilamentJaga\\Tests\\": "tests/"
+            "Laraditz\\FilamentJaga\\Tests\\": "tests/",
+            "Laraditz\\FilamentJaga\\Tests\\Models\\": "tests/Models/"
         }
     },
     "extra": {
