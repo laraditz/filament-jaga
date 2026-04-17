@@ -72,32 +72,29 @@ php artisan jaga:install --assign --email=admin@example.com
 
 ## Features
 
-Once installed, a **Roles & Permissions** group appears in the Filament sidebar with three items:
-
-### Overview
-
-A dashboard showing at a glance:
-
-- Total roles
-- Total permissions
-- Users with roles assigned
+Once installed, a **Roles & Permissions** group appears in the Filament sidebar with two resources:
 
 ### Roles
 
 Full CRUD for roles:
 
 - Create roles with a name and auto-generated slug
-- Assign individual permissions via checkbox list
+- Assign individual permissions via checkbox list grouped by permission group
 - Add wildcard patterns (e.g. `posts.*`) for broad permission grants
 - Edit or delete existing roles
 
 ### Permissions
 
-Read-only list of all permissions discovered by jaga:
+Full management of permissions discovered by jaga and custom permissions you define:
 
-- Filter by access level (`public`, `auth`, `restricted`)
-- Filter by custom vs. auto-discovered
-- Grouped and sortable by group name
+- **Tabs** — switch between All, Route (auto-discovered), and Custom permissions
+- **Grouping** — table rows grouped by permission group for easy scanning
+- **Filters** — filter by access level (`public`, `auth`, `restricted`) or show soft-deleted records
+- **Edit** — update the group, description, and access level of any permission
+- **Create** — add custom permissions not tied to any route
+- **Delete** — remove custom permissions (auto-discovered route permissions cannot be deleted)
+- **Roles tab** — view, attach, and detach roles assigned to a permission
+- **Users tab** — view, attach, and detach users assigned directly to a permission
 
 ## Configuration
 
@@ -127,9 +124,6 @@ return [
 
     // Your app's User model
     'user_model' => \App\Models\User::class,
-
-    // URL segment for the dashboard page (/your-panel/jaga)
-    'dashboard_slug' => 'jaga',
 ];
 ```
 
@@ -144,7 +138,6 @@ FilamentJagaPlugin::make()
     ->navigationSort(5)
     ->permission('admin.access')
     ->userModel(\App\Models\Admin::class)
-    ->dashboardSlug('access')
     ->disableResource('permissions') // hide the Permissions resource
 ```
 
