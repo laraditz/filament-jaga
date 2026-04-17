@@ -4,6 +4,8 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
 [![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
+<p align="center"><img src="https://github.com/user-attachments/assets/9b1be32d-5a7f-4131-b8b7-58e06cd1f50f" alt="Filament Jaga Icon"></p>
+
 A [FilamentPHP v5](https://filamentphp.com) plugin for managing roles and permissions powered by [laraditz/jaga](https://github.com/laraditz/jaga).
 
 ## Requirements
