@@ -24,7 +24,8 @@ class CreateRole extends CreateRecord
     {
         $wildcards     = $data['wildcard_patterns'] ?? [];
         $permissionIds = RoleResource::collectPermissionIds($data);
-        unset($data['wildcard_patterns']);
+        $permissionIds = RoleResource::resolvePermissionsWithWildcards($permissionIds, $wildcards);
+        unset($data['wildcard_patterns'], $data['select_all_permissions']);
 
         $role = static::getModel()::create($data);
 

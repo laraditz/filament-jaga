@@ -40,7 +40,8 @@ return [
         'route_permissions'  => 'Route Permissions',
         'custom_permissions' => 'Custom Permissions',
         'wildcard_patterns'  => 'Wildcard Patterns',
-        'wildcard_hint'      => 'Wildcard patterns grant access to any permission matching a glob-style pattern (e.g. reports.*). Useful for covering future permissions without editing the role again.',
+        'ungrouped'          => 'Other',
+        'wildcard_hint'      => 'Wildcard patterns grant access to any permission matching a glob-style pattern (e.g. reports.*). Adding * grants access to everything. Permissions above will reflect which routes are covered.',
     ],
 
     'actions' => [
@@ -55,6 +56,7 @@ return [
         'group'               => 'Group',
         'access_level'        => 'Access Level',
         'methods'             => 'HTTP Methods',
+        'guard_name'          => 'Guard',
         'is_custom'           => 'Custom',
         'is_auto_description' => 'Auto Description',
         'wildcard_patterns'   => 'Wildcard Patterns',

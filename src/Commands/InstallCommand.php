@@ -18,7 +18,7 @@ class InstallCommand extends Command
 
     public function handle(): int
     {
-        if (! $this->option('assign')) {
+        if (!$this->option('assign')) {
             $this->publishConfig();
             $this->seedPermission();
             $this->seedRole();
@@ -31,7 +31,7 @@ class InstallCommand extends Command
     private function publishConfig(): void
     {
         $this->callSilently('vendor:publish', [
-            '--tag'   => 'filament-jaga-config',
+            '--tag' => 'filament-jaga-config',
             '--force' => $this->option('force'),
         ]);
     }
@@ -41,13 +41,13 @@ class InstallCommand extends Command
         Permission::firstOrCreate(
             ['name' => 'jaga.access'],
             [
-                'methods'             => ['GET'],
-                'uri'                 => 'jaga',
-                'description'         => 'Access the Filament Jaga management panel',
+                'methods' => ['GET'],
+                'uri' => 'jaga',
+                'description' => 'Roles & Permissions',
                 'is_auto_description' => false,
-                'is_custom'           => true,
-                'access_level'        => 'restricted',
-                'group'               => 'Jaga',
+                'is_custom' => true,
+                'access_level' => 'restricted',
+                'group' => 'Jaga',
             ]
         );
     }
@@ -62,25 +62,25 @@ class InstallCommand extends Command
 
     private function assignPermissionsToRole(): void
     {
-        $role       = Role::where('slug', 'super-admin')->firstOrFail();
+        $role = Role::where('slug', 'super-admin')->firstOrFail();
         $permission = Permission::where('name', 'jaga.access')->firstOrFail();
-        $table      = config('jaga.tables.role_permission');
+        $table = config('jaga.tables.role_permission');
 
-        if (! DB::table($table)->where('role_id', $role->id)->where('permission_id', $permission->id)->exists()) {
+        if (!DB::table($table)->where('role_id', $role->id)->where('permission_id', $permission->id)->exists()) {
             DB::table($table)->insert([
-                'role_id'       => $role->id,
+                'role_id' => $role->id,
                 'permission_id' => $permission->id,
-                'wildcard'      => null,
-                'created_at'    => now(),
+                'wildcard' => null,
+                'created_at' => now(),
             ]);
         }
 
-        if (! DB::table($table)->where('role_id', $role->id)->where('wildcard', '*')->exists()) {
+        if (!DB::table($table)->where('role_id', $role->id)->where('wildcard', '*')->exists()) {
             DB::table($table)->insert([
-                'role_id'       => $role->id,
+                'role_id' => $role->id,
                 'permission_id' => null,
-                'wildcard'      => '*',
-                'created_at'    => now(),
+                'wildcard' => '*',
+                'created_at' => now(),
             ]);
         }
     }
@@ -88,12 +88,12 @@ class InstallCommand extends Command
     private function assignUser(): int
     {
         $userModel = config('filament-jaga.user_model', \App\Models\User::class);
-        $email     = $this->option('email');
+        $email = $this->option('email');
 
         if ($email) {
             $user = $userModel::where('email', $email)->first();
 
-            if (! $user) {
+            if (!$user) {
                 $this->error("No user found with email: {$email}");
                 return self::FAILURE;
             }
@@ -109,7 +109,7 @@ class InstallCommand extends Command
 
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             $email = $this->ask(__('filament-jaga::filament-jaga.install.enter_email'));
-            $user  = $userModel::where('email', $email)->first();
+            $user = $userModel::where('email', $email)->first();
 
             if ($user) {
                 $this->doAssign($user);

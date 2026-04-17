@@ -20,7 +20,6 @@ class EditRole extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Load wildcard patterns
         $wildcards = DB::table(config('jaga.tables.role_permission'))
             ->where('role_id', $this->record->id)
             ->whereNull('permission_id')
@@ -31,13 +30,27 @@ class EditRole extends EditRecord
 
         $data['wildcard_patterns'] = $wildcards;
 
-        // Split permissions into per-group fields to match the form structure
+        // Reflect '*' wildcard in the Select All toggle
+        $data['select_all_permissions'] = collect($wildcards)->pluck('pattern')->contains('*');
+
+        // Split permissions into per-group fields to match the tab structure
         $permissions = $this->record->permissions()->get();
 
-        $permissions->where('is_custom', false)->groupBy('group')->each(function ($groupPerms, $group) use (&$data) {
-            $slug = Str::slug($group, '_');
-            $data["permissions_{$slug}"] = $groupPerms->pluck('id')->toArray();
-        });
+        $permissions->where('is_custom', false)
+            ->filter(fn ($p) => ! empty($p->group))
+            ->groupBy('group')
+            ->each(function ($groupPerms, $group) use (&$data) {
+                $data['permissions_' . Str::slug($group, '_')] = $groupPerms->pluck('id')->toArray();
+            });
+
+        $ungroupedIds = $permissions->where('is_custom', false)
+            ->filter(fn ($p) => empty($p->group))
+            ->pluck('id')
+            ->toArray();
+
+        if (! empty($ungroupedIds)) {
+            $data['permissions_ungrouped'] = $ungroupedIds;
+        }
 
         $customIds = $permissions->where('is_custom', true)->pluck('id')->toArray();
 
@@ -52,7 +65,8 @@ class EditRole extends EditRecord
     {
         $wildcards     = $data['wildcard_patterns'] ?? [];
         $permissionIds = RoleResource::collectPermissionIds($data);
-        unset($data['wildcard_patterns']);
+        $permissionIds = RoleResource::resolvePermissionsWithWildcards($permissionIds, $wildcards);
+        unset($data['wildcard_patterns'], $data['select_all_permissions']);
 
         $record->update($data);
 
