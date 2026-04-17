@@ -4,7 +4,6 @@ namespace Laraditz\FilamentJaga;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Laraditz\FilamentJaga\Pages\JagaDashboard;
 use Laraditz\FilamentJaga\Resources\PermissionResource;
 use Laraditz\FilamentJaga\Resources\RoleResource;
 
@@ -52,7 +51,6 @@ class FilamentJagaPlugin implements Plugin
         }
 
         $panel->resources($resources);
-        $panel->pages([JagaDashboard::class]);
     }
 
     public function boot(Panel $panel): void

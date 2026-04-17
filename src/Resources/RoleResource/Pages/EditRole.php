@@ -52,10 +52,18 @@ class EditRole extends EditRecord
             $data['permissions_ungrouped'] = $ungroupedIds;
         }
 
-        $customIds = $permissions->where('is_custom', true)->pluck('id')->toArray();
+        $customPerms = $permissions->where('is_custom', true);
 
-        if (! empty($customIds)) {
-            $data['permissions_custom'] = $customIds;
+        $customPerms->filter(fn ($p) => ! empty($p->group))
+            ->groupBy('group')
+            ->each(function ($groupPerms, $group) use (&$data) {
+                $data['permissions_custom_' . Str::slug($group, '_')] = $groupPerms->pluck('id')->toArray();
+            });
+
+        $ungroupedCustomIds = $customPerms->filter(fn ($p) => empty($p->group))->pluck('id')->toArray();
+
+        if (! empty($ungroupedCustomIds)) {
+            $data['permissions_custom'] = $ungroupedCustomIds;
         }
 
         return $data;

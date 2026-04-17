@@ -42,6 +42,22 @@ return [
         'wildcard_patterns'  => 'Wildcard Patterns',
         'ungrouped'          => 'Other',
         'wildcard_hint'      => 'Wildcard patterns grant access to any permission matching a glob-style pattern (e.g. reports.*). Adding * grants access to everything. Permissions above will reflect which routes are covered.',
+        'all'                => 'All',
+        'route'              => 'Route',
+        'custom'             => 'Custom',
+        'roles'              => 'Roles',
+        'users'              => 'Users',
+    ],
+
+    'relation_managers' => [
+        'roles' => [
+            'attach_label' => 'Attach Role',
+            'detach_label' => 'Detach',
+        ],
+        'users' => [
+            'attach_label' => 'Attach User',
+            'detach_label' => 'Detach',
+        ],
     ],
 
     'actions' => [

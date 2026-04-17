@@ -72,10 +72,9 @@ class RoleResource extends Resource
 
     /**
      * Merge manually selected permissions with any additionally covered by wildcard patterns.
-     * Wildcards are authoritative — permissions they cover are always included.
      *
-     * @param  array<int>     $permissionIds
-     * @param  array<array>   $wildcards  e.g. [['pattern' => 'posts.*'], ...]
+     * @param  array<int>    $permissionIds
+     * @param  array<array>  $wildcards  e.g. [['pattern' => 'posts.*'], ...]
      * @return array<int>
      */
     public static function resolvePermissionsWithWildcards(array $permissionIds, array $wildcards): array
@@ -103,108 +102,118 @@ class RoleResource extends Resource
      *
      * @param  array<string>  $patterns
      */
-    public static function syncPermissionsByPatterns(
-        array $patterns,
-        callable $set,
-        Collection $groups,
-        Collection $ungroupedPermissions,
-        Collection $customPermissions,
-    ): void {
+    public static function syncPermissionsByPatterns(array $patterns, callable $set): void
+    {
         if (empty($patterns)) {
-            return; // Preserve current checkbox state; no wildcard → no forced clearing
+            return;
         }
 
         $hasGlobal = in_array('*', $patterns);
         $matches = fn(Permission $p) => $hasGlobal || collect($patterns)->contains(fn($pat) => fnmatch($pat, $p->name));
 
-        foreach ($groups as $group) {
-            $set(
-                'permissions_' . Str::slug($group, '_'),
-                Permission::where('group', $group)->where('is_custom', false)->orderBy('name')->get()->filter($matches)->pluck('id')->toArray()
-            );
+        // Route permissions by group
+        Permission::where('is_custom', false)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->get()->groupBy('group')
+            ->each(function ($perms, $group) use ($set, $matches) {
+                $set('permissions_' . Str::slug($group, '_'), $perms->filter($matches)->pluck('id')->toArray());
+            });
+
+        // Ungrouped route permissions
+        $ungrouped = Permission::where('is_custom', false)
+            ->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))
+            ->get();
+        if ($ungrouped->isNotEmpty()) {
+            $set('permissions_ungrouped', $ungrouped->filter($matches)->pluck('id')->toArray());
         }
 
-        if ($ungroupedPermissions->isNotEmpty()) {
-            $set('permissions_ungrouped', $ungroupedPermissions->filter($matches)->pluck('id')->toArray());
-        }
+        // Custom permissions by group
+        Permission::where('is_custom', true)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->get()->groupBy('group')
+            ->each(function ($perms, $group) use ($set, $matches) {
+                $set('permissions_custom_' . Str::slug($group, '_'), $perms->filter($matches)->pluck('id')->toArray());
+            });
 
-        if ($customPermissions->isNotEmpty()) {
-            $set('permissions_custom', $customPermissions->filter($matches)->pluck('id')->toArray());
+        // Ungrouped custom permissions
+        $ungroupedCustom = Permission::where('is_custom', true)
+            ->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))
+            ->get();
+        if ($ungroupedCustom->isNotEmpty()) {
+            $set('permissions_custom', $ungroupedCustom->filter($matches)->pluck('id')->toArray());
         }
     }
 
     /**
-     * Clear all permission checkboxes, preserving any permission whose name matches
-     * the filament-jaga access gate (e.g. jaga.access) so the user cannot lock
-     * themselves out of the panel.
+     * Clear all permission checkboxes, preserving the filament-jaga access permission
+     * so the user cannot accidentally lock themselves out of the panel.
      */
-    private static function clearPermissionsPreservingAccess(
-        callable $set,
-        Collection $groups,
-        Collection $ungroupedPermissions,
-        Collection $customPermissions,
-    ): void {
-        $guardPermission = Permission::where('name', config('filament-jaga.permission', 'jaga.access'))->first();
+    private static function clearPermissionsPreservingAccess(callable $set): void
+    {
+        $guard = Permission::where('name', config('filament-jaga.permission', 'jaga.access'))->first();
 
-        foreach ($groups as $group) {
-            $slug = Str::slug($group, '_');
-            $keep = ($guardPermission && !$guardPermission->is_custom && $guardPermission->group === $group)
-                ? [$guardPermission->id] : [];
-            $set("permissions_{$slug}", $keep);
+        Permission::where('is_custom', false)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->distinct()->pluck('group')
+            ->each(fn($group) => $set('permissions_' . Str::slug($group, '_'), []));
+
+        if (Permission::where('is_custom', false)->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))->exists()) {
+            $set('permissions_ungrouped', []);
         }
 
-        if ($ungroupedPermissions->isNotEmpty()) {
-            $keep = ($guardPermission && !$guardPermission->is_custom && empty($guardPermission->group))
-                ? [$guardPermission->id] : [];
-            $set('permissions_ungrouped', $keep);
-        }
+        Permission::where('is_custom', true)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->distinct()->pluck('group')
+            ->each(function ($group) use ($set, $guard) {
+                $slug = 'custom_' . Str::slug($group, '_');
+                $keep = ($guard && $guard->is_custom && $guard->group === $group) ? [$guard->id] : [];
+                $set("permissions_{$slug}", $keep);
+            });
 
-        if ($customPermissions->isNotEmpty()) {
-            $keep = ($guardPermission && $guardPermission->is_custom)
-                ? [$guardPermission->id] : [];
+        if (Permission::where('is_custom', true)->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))->exists()) {
+            $keep = ($guard && $guard->is_custom && empty($guard->group)) ? [$guard->id] : [];
             $set('permissions_custom', $keep);
         }
     }
 
     public static function form(Schema $schema): Schema
     {
-        $groups = Permission::where('is_custom', false)
-            ->whereNotNull('group')
-            ->where('group', '!=', '')
-            ->orderBy('group')
-            ->distinct()
-            ->pluck('group');
+        // Route permission groups
+        $routeGroups = Permission::where('is_custom', false)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->orderBy('group')->distinct()->pluck('group');
 
-        $ungroupedPermissions = Permission::where('is_custom', false)
+        $ungroupedRoutePermissions = Permission::where('is_custom', false)
             ->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name')->get();
 
-        $customPermissions = Permission::where('is_custom', true)->orderBy('name')->get();
-        $hasCustom = $customPermissions->isNotEmpty();
+        // Custom permission groups
+        $customGroups = Permission::where('is_custom', true)
+            ->whereNotNull('group')->where('group', '!=', '')
+            ->orderBy('group')->distinct()->pluck('group');
 
-        // Returns true if a permission (by ID) is covered by the current wildcard_patterns form state.
+        $ungroupedCustomPermissions = Permission::where('is_custom', true)
+            ->where(fn($q) => $q->whereNull('group')->orWhere('group', ''))
+            ->orderBy('name')->get();
+
+        // Primary label: description if set, otherwise name.
+        // Secondary: always URI.
+        $optionLabel = fn($p) => $p->description ?: $p->name;
+        $optionUri = fn($p) => $p->uri ?: '';
+
+        // Returns true if a specific permission (by ID) is currently locked by a wildcard.
         $coveredByWildcard = function (mixed $value, Get $get, Collection $collection): bool {
             $patterns = collect($get('wildcard_patterns') ?? [])->pluck('pattern')->filter()->toArray();
-
             if (empty($patterns)) {
                 return false;
             }
-
             $hasGlobal = in_array('*', $patterns);
             $permission = $collection->firstWhere('id', $value);
 
-            if (!$permission) {
-                return false;
-            }
-
-            return $hasGlobal || collect($patterns)->contains(fn($pat) => fnmatch($pat, $permission->name));
+            return $permission && ($hasGlobal || collect($patterns)->contains(fn($pat) => fnmatch($pat, $permission->name)));
         };
 
-        // --- Route Permissions tab ---
-        $routeTabComponents = [];
-
-        // Returns true when ALL options in $collection are currently wildcard-locked.
+        // Returns true when ALL options in $collection are wildcard-locked (hides bulk-toggle).
         $allCoveredByWildcard = function (Get $get, Collection $collection): bool {
             $patterns = collect($get('wildcard_patterns') ?? [])->pluck('pattern')->filter()->toArray();
             if (empty($patterns)) {
@@ -217,107 +226,97 @@ class RoleResource extends Resource
             );
         };
 
-        // Label helpers — description is primary, name is secondary.
-        $optionLabel = fn($p) => $p->description ?: $p->name;
-        $optionDescription = fn($p) => $p->description ? $p->name : ($p->uri ?: '');
+        // Helper: build a CheckboxList for a given permission collection and field name.
+        $makeCheckboxList = function (string $fieldName, Collection $perms) use ($optionLabel, $optionUri, $coveredByWildcard, $allCoveredByWildcard): Forms\Components\CheckboxList {
+            $options = $perms->mapWithKeys(fn($p) => [$p->id => $optionLabel($p)])->toArray();
 
-        foreach ($groups as $group) {
-            $slug = Str::slug($group, '_');
-            $groupPermissions = Permission::where('group', $group)->where('is_custom', false)->orderBy('name')->get();
-            $groupOptions = $groupPermissions->mapWithKeys(fn($p) => [$p->id => $optionLabel($p)])->toArray();
+            return Forms\Components\CheckboxList::make($fieldName)
+                ->hiddenLabel()
+                ->options($options)
+                ->descriptions($perms->mapWithKeys(fn($p) => [$p->id => $optionUri($p)])->toArray())
+                ->in(array_keys($options))
+                ->disableOptionWhen(fn(mixed $value, Get $get) => $coveredByWildcard($value, $get, $perms))
+                ->bulkToggleable(fn(Get $get) => !$allCoveredByWildcard($get, $perms))
+                ->columns(2);
+        };
 
-            $routeTabComponents[] = Section::make($group)
-                ->schema([
-                    Forms\Components\CheckboxList::make("permissions_{$slug}")
-                        ->hiddenLabel()
-                        ->options($groupOptions)
-                        ->descriptions($groupPermissions->mapWithKeys(fn($p) => [$p->id => $optionDescription($p)])->toArray())
-                        ->in(array_keys($groupOptions))
-                        ->disableOptionWhen(fn(mixed $value, Get $get) => $coveredByWildcard($value, $get, $groupPermissions))
-                        ->bulkToggleable(fn(Get $get) => !$allCoveredByWildcard($get, $groupPermissions))
-                        ->columns(2),
-                ])
-                ->collapsible()
-                ->columnSpanFull();
+        // Helper: wrap a CheckboxList in a collapsible full-width Section.
+        $makeSection = function (string $heading, Forms\Components\CheckboxList $list): Section {
+            return Section::make($heading)->schema([$list])->collapsible()->columnSpanFull();
+        };
+
+        // --- Route Permissions tab ---
+        $routeTabComponents = [];
+
+        foreach ($routeGroups as $group) {
+            $perms = Permission::where('group', $group)->where('is_custom', false)->orderBy('name')->get();
+            $routeTabComponents[] = $makeSection($group, $makeCheckboxList('permissions_' . Str::slug($group, '_'), $perms));
         }
 
-        if ($ungroupedPermissions->isNotEmpty()) {
-            $ungroupedOptions = $ungroupedPermissions->mapWithKeys(fn($p) => [$p->id => $optionLabel($p)])->toArray();
-
-            $routeTabComponents[] = Section::make(__('filament-jaga::filament-jaga.tabs.ungrouped'))
-                ->schema([
-                    Forms\Components\CheckboxList::make('permissions_ungrouped')
-                        ->hiddenLabel()
-                        ->options($ungroupedOptions)
-                        ->descriptions($ungroupedPermissions->mapWithKeys(fn($p) => [$p->id => $optionDescription($p)])->toArray())
-                        ->in(array_keys($ungroupedOptions))
-                        ->disableOptionWhen(fn(mixed $value, Get $get) => $coveredByWildcard($value, $get, $ungroupedPermissions))
-                        ->bulkToggleable(fn(Get $get) => !$allCoveredByWildcard($get, $ungroupedPermissions))
-                        ->columns(2),
-                ])
-                ->collapsible()
-                ->columnSpanFull();
+        if ($ungroupedRoutePermissions->isNotEmpty()) {
+            $routeTabComponents[] = $makeSection(
+                __('filament-jaga::filament-jaga.tabs.ungrouped'),
+                $makeCheckboxList('permissions_ungrouped', $ungroupedRoutePermissions)
+            );
         }
 
         // --- Custom Permissions tab ---
-        $customOptions = $customPermissions->mapWithKeys(fn($p) => [$p->id => $optionLabel($p)])->toArray();
-        $customTabComponents = $hasCustom ? [
-            Forms\Components\CheckboxList::make('permissions_custom')
-                ->hiddenLabel()
-                ->options($customOptions)
-                ->descriptions($customPermissions->mapWithKeys(fn($p) => [$p->id => $optionDescription($p)])->toArray())
-                ->in(array_keys($customOptions))
-                ->disableOptionWhen(fn(mixed $value, Get $get) => $coveredByWildcard($value, $get, $customPermissions))
-                ->bulkToggleable(fn(Get $get) => !$allCoveredByWildcard($get, $customPermissions))
-                ->columns(2)
-                ->columnSpanFull(),
-        ] : [];
+        $customTabComponents = [];
+
+        foreach ($customGroups as $group) {
+            $perms = Permission::where('group', $group)->where('is_custom', true)->orderBy('name')->get();
+            $customTabComponents[] = $makeSection($group, $makeCheckboxList('permissions_custom_' . Str::slug($group, '_'), $perms));
+        }
+
+        if ($ungroupedCustomPermissions->isNotEmpty()) {
+            $customTabComponents[] = $makeSection(
+                __('filament-jaga::filament-jaga.tabs.ungrouped'),
+                $makeCheckboxList('permissions_custom', $ungroupedCustomPermissions)
+            );
+        }
 
         return $schema->components([
-            Section::make('Role Details')
-                ->schema([
-                    Forms\Components\TextInput::make('name')
-                        ->label(__('filament-jaga::filament-jaga.fields.name'))
-                        ->required()
-                        ->maxLength(255)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(
-                            fn($state, callable $set) =>
-                            $set('slug', Str::slug($state))
-                        ),
+            Section::make()->schema([
+                Forms\Components\TextInput::make('name')
+                    ->label(__('filament-jaga::filament-jaga.fields.name'))
+                    ->required()
+                    ->maxLength(255)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(
+                        fn($state, callable $set) =>
+                        $set('slug', Str::slug($state))
+                    ),
 
-                    Forms\Components\TextInput::make('slug')
-                        ->label(__('filament-jaga::filament-jaga.fields.slug'))
-                        ->required()
-                        ->maxLength(255),
+                Forms\Components\TextInput::make('slug')
+                    ->label(__('filament-jaga::filament-jaga.fields.slug'))
+                    ->required()
+                    ->maxLength(255),
 
-                    Forms\Components\Textarea::make('description')
-                        ->label(__('filament-jaga::filament-jaga.fields.description'))
-                        ->rows(2)
-                        ->maxLength(500),
+                Forms\Components\TextInput::make('guard_name')
+                    ->label(__('filament-jaga::filament-jaga.fields.guard_name'))
+                    ->required()
+                    ->default('web')
+                    ->maxLength(100),
 
-                    Forms\Components\TextInput::make('guard_name')
-                        ->label(__('filament-jaga::filament-jaga.fields.guard_name'))
-                        ->required()
-                        ->default('web')
-                        ->maxLength(100),
-                ])->columns(2)->columnSpanFull(),
-
-            // Selecting all = wildcard '*'; visually reflects across all permission tabs
+                Forms\Components\Textarea::make('description')
+                    ->label(__('filament-jaga::filament-jaga.fields.description'))
+                    ->rows(2)
+                    ->maxLength(500),
+            ])
+                ->columns(2)
+                ->columnSpanFull(),
             Forms\Components\Toggle::make('select_all_permissions')
                 ->label(__('filament-jaga::filament-jaga.fields.select_all_permissions'))
                 ->live()
                 ->dehydrated(false)
                 ->columnSpanFull()
-                ->afterStateUpdated(function (bool $state, callable $set) use ($groups, $ungroupedPermissions, $customPermissions) {
+                ->afterStateUpdated(function (bool $state, callable $set) {
                     if ($state) {
                         $set('wildcard_patterns', [['pattern' => '*']]);
-                        static::syncPermissionsByPatterns(['*'], $set, $groups, $ungroupedPermissions, $customPermissions);
+                        static::syncPermissionsByPatterns(['*'], $set);
                     } else {
                         $set('wildcard_patterns', []);
-                        // Explicit clear when toggled OFF — preserve jaga.access so the user
-                        // cannot accidentally lock themselves out of the panel.
-                        static::clearPermissionsPreservingAccess($set, $groups, $ungroupedPermissions, $customPermissions);
+                        static::clearPermissionsPreservingAccess($set);
                     }
                 }),
 
@@ -345,20 +344,16 @@ class RoleResource extends Resource
                                         ->required()
                                         ->placeholder('e.g. reports.*')
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(function (callable $set, Get $get) use ($groups, $ungroupedPermissions, $customPermissions) {
+                                        ->afterStateUpdated(function (callable $set, Get $get) {
                                             $patterns = collect($get('../../wildcard_patterns') ?? [])
-                                                ->pluck('pattern')
-                                                ->filter()
-                                                ->values()
-                                                ->toArray();
-
-                                            static::syncPermissionsByPatterns($patterns, $set, $groups, $ungroupedPermissions, $customPermissions);
+                                                ->pluck('pattern')->filter()->values()->toArray();
+                                            static::syncPermissionsByPatterns($patterns, $set);
                                         }),
                                 ])
                                 ->live()
-                                ->afterStateUpdated(function (?array $state, callable $set) use ($groups, $ungroupedPermissions, $customPermissions) {
+                                ->afterStateUpdated(function (?array $state, callable $set) {
                                     $patterns = collect($state ?? [])->pluck('pattern')->filter()->values()->toArray();
-                                    static::syncPermissionsByPatterns($patterns, $set, $groups, $ungroupedPermissions, $customPermissions);
+                                    static::syncPermissionsByPatterns($patterns, $set);
                                 })
                                 ->addActionLabel(__('filament-jaga::filament-jaga.actions.add_wildcard'))
                                 ->defaultItems(0)
