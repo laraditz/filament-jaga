@@ -85,21 +85,49 @@ class RoleResource extends Resource
                 ->disabled(fn (string $context) => $context === 'edit'),
         ];
 
-        // One collapsible Section per permission group (non-custom permissions)
+        // One Section per permission group (non-custom permissions)
         $groups = Permission::where('is_custom', false)
             ->whereNotNull('group')
             ->orderBy('group')
             ->distinct()
             ->pluck('group');
 
+        $allGroupSlugs = $groups->map(fn ($g) => Str::slug($g, '_'))->toArray();
+        $hasCustom     = Permission::where('is_custom', true)->exists();
+
+        // Select All / Deselect All toggle
+        if ($groups->isNotEmpty() || $hasCustom) {
+            $components[] = Forms\Components\Toggle::make('select_all_permissions')
+                ->label(__('filament-jaga::filament-jaga.fields.select_all_permissions'))
+                ->live()
+                ->dehydrated(false)
+                ->columnSpanFull()
+                ->afterStateUpdated(function (bool $state, callable $set) use ($groups, $hasCustom) {
+                    foreach ($groups as $group) {
+                        $slug = Str::slug($group, '_');
+                        $set("permissions_{$slug}", $state
+                            ? Permission::where('group', $group)->where('is_custom', false)->pluck('id')->toArray()
+                            : []
+                        );
+                    }
+
+                    if ($hasCustom) {
+                        $set('permissions_custom', $state
+                            ? Permission::where('is_custom', true)->pluck('id')->toArray()
+                            : []
+                        );
+                    }
+                });
+        }
+
         foreach ($groups as $group) {
-            $slug = Str::slug($group, '_');
+            $slug             = Str::slug($group, '_');
             $groupPermissions = Permission::where('group', $group)
                 ->where('is_custom', false)
                 ->orderBy('name')
                 ->get();
 
-            $options = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+            $options      = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
             $descriptions = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
 
             $components[] = Section::make($group)
@@ -112,14 +140,14 @@ class RoleResource extends Resource
                         ->bulkToggleable(),
                 ])
                 ->collapsible()
-                ->collapsed();
+                ->columnSpanFull();
         }
 
         // Custom permissions in their own section
         $customPermissions = Permission::where('is_custom', true)->orderBy('name')->get();
 
         if ($customPermissions->isNotEmpty()) {
-            $customOptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+            $customOptions      = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
             $customDescriptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
 
             $components[] = Section::make(__('filament-jaga::filament-jaga.fields.custom_permissions'))
@@ -132,7 +160,7 @@ class RoleResource extends Resource
                         ->bulkToggleable(),
                 ])
                 ->collapsible()
-                ->collapsed();
+                ->columnSpanFull();
         }
 
         $components[] = Forms\Components\Repeater::make('wildcard_patterns')
