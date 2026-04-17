@@ -1,5 +1,9 @@
 # Filament Jaga
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
+[![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
+[![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
+
 A [FilamentPHP v5](https://filamentphp.com) plugin for managing roles and permissions powered by [laraditz/jaga](https://github.com/laraditz/jaga).
 
 ## Requirements
@@ -139,6 +143,15 @@ FilamentJagaPlugin::make()
     ->permission('admin.access')
     ->userModel(\App\Models\Admin::class)
     ->disableResource('permissions') // hide the Permissions resource
+```
+
+## Cache
+
+Jaga caches permission data for performance. After making changes to permissions or roles, you can manage the cache with:
+
+```bash
+php artisan jaga:cache   # rebuild the permission cache
+php artisan jaga:clear   # clear the permission cache
 ```
 
 ## Publishing Translations
