@@ -1,8 +1,38 @@
 # Filament Jaga
 
-A [FilamentPHP v5](https://filamentphp.com) plugin for managing roles and permissions powered by [laraditz/jaga](https://github.com/laraditz/jaga).
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
+[![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
+[![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
-## Requirements
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/f6549d3680939ea1df6a04d1d118e8ec0230c4a7/uploads/2026-04-17T13-54-58-603Z-isdt9fsi7.png" alt="Filament Jaga" width="100"></p>
+
+A **FilamentPHP v5** plugin for managing roles and permissions, powered by [laraditz/jaga](https://github.com/laraditz/jaga). Simple to set up. Easy to extend.
+
+## 📸 Preview
+
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/edd63bc33759e665b99394754340edc4f1a279e0/uploads/2026-04-17T13-56-24-719Z-3u4uyd235.png" alt="Filament Jaga Preview"></p>
+
+## ✨ Features
+
+### 🎭 Roles
+
+- Create roles with a name and auto-generated slug
+- Assign permissions via checkbox list grouped by permission group
+- Add wildcard patterns (e.g. `posts.*`) for broad permission grants
+- Edit or delete existing roles
+
+### 🔑 Permissions
+
+- **Tabs** — switch between All, Route (auto-discovered), and Custom permissions
+- **Grouping** — table rows grouped by permission group for easy scanning
+- **Filters** — filter by access level (`public`, `auth`, `restricted`) or show soft-deleted records
+- **Edit** — update the group, description, and access level of any permission
+- **Create** — add custom permissions not tied to any route
+- **Delete** — remove custom permissions (auto-discovered route permissions cannot be deleted)
+- **Roles tab** — view, attach, and detach roles assigned to a permission
+- **Users tab** — view, attach, and detach users assigned directly to a permission
+
+## 📋 Requirements
 
 | Dependency    | Version |
 | ------------- | ------- |
@@ -11,17 +41,15 @@ A [FilamentPHP v5](https://filamentphp.com) plugin for managing roles and permis
 | Filament      | ^5.0    |
 | laraditz/jaga | ^1.0    |
 
-## Installation
+## 🚀 Installation
 
-Install via Composer:
+**1.** Install via Composer:
 
 ```bash
 composer require laraditz/filament-jaga
 ```
 
-### 1. Set up the User model
-
-Add the `HasRoles` trait to your `User` model:
+**2.** Add the `HasRoles` trait to your `User` model:
 
 ```php
 use Laraditz\Jaga\Traits\HasRoles;
@@ -32,9 +60,7 @@ class User extends Authenticatable
 }
 ```
 
-### 2. Register the plugin
-
-Add `FilamentJagaPlugin` to your Filament panel provider:
+**3.** Register the plugin in your Filament panel provider:
 
 ```php
 use Laraditz\FilamentJaga\FilamentJagaPlugin;
@@ -46,7 +72,7 @@ public function panel(Panel $panel): Panel
 }
 ```
 
-### 3. Run the installer
+**4.** Run the installer:
 
 ```bash
 php artisan jaga:install
@@ -70,33 +96,7 @@ To re-assign the role without re-seeding:
 php artisan jaga:install --assign --email=admin@example.com
 ```
 
-## Features
-
-Once installed, a **Roles & Permissions** group appears in the Filament sidebar with two resources:
-
-### Roles
-
-Full CRUD for roles:
-
-- Create roles with a name and auto-generated slug
-- Assign individual permissions via checkbox list grouped by permission group
-- Add wildcard patterns (e.g. `posts.*`) for broad permission grants
-- Edit or delete existing roles
-
-### Permissions
-
-Full management of permissions discovered by jaga and custom permissions you define:
-
-- **Tabs** — switch between All, Route (auto-discovered), and Custom permissions
-- **Grouping** — table rows grouped by permission group for easy scanning
-- **Filters** — filter by access level (`public`, `auth`, `restricted`) or show soft-deleted records
-- **Edit** — update the group, description, and access level of any permission
-- **Create** — add custom permissions not tied to any route
-- **Delete** — remove custom permissions (auto-discovered route permissions cannot be deleted)
-- **Roles tab** — view, attach, and detach roles assigned to a permission
-- **Users tab** — view, attach, and detach users assigned directly to a permission
-
-## Configuration
+## ⚙️ Configuration
 
 Publish the config file:
 
@@ -127,7 +127,7 @@ return [
 ];
 ```
 
-## Customising the Plugin
+## 🎨 Customising the Plugin
 
 All options are available via a fluent API:
 
@@ -141,13 +141,27 @@ FilamentJagaPlugin::make()
     ->disableResource('permissions') // hide the Permissions resource
 ```
 
-## Publishing Translations
+## 🗄️ Cache & Sync
+
+Jaga caches permission data for performance. After making changes to permissions or roles, manage the cache with:
+
+```bash
+php artisan jaga:sync    # discover and sync route permissions to the database
+php artisan jaga:cache   # rebuild the permission cache
+php artisan jaga:clear   # clear the permission cache
+```
+
+## 🌐 Publishing Translations
 
 ```bash
 php artisan vendor:publish --tag=filament-jaga-lang
 ```
 
 Language files will be published to `lang/vendor/filament-jaga`.
+
+## 📦 Related
+
+This plugin is a UI layer on top of [laraditz/jaga](https://github.com/laraditz/jaga). Head over there for the full documentation on permissions, roles, middleware usage, and more.
 
 ## License
 
