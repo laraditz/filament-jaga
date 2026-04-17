@@ -5,6 +5,7 @@ namespace Laraditz\FilamentJaga\Resources;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -45,9 +46,29 @@ class RoleResource extends Resource
             && auth()->user()->hasPermission(config('filament-jaga.permission'));
     }
 
+    /**
+     * Collect all permission IDs from the grouped form fields (permissions_*).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int>
+     */
+    public static function collectPermissionIds(array &$data): array
+    {
+        $ids = [];
+
+        foreach (array_keys($data) as $key) {
+            if (str_starts_with($key, 'permissions_') && is_array($data[$key])) {
+                $ids = array_merge($ids, $data[$key]);
+                unset($data[$key]);
+            }
+        }
+
+        return array_values(array_filter($ids));
+    }
+
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        $components = [
             Forms\Components\TextInput::make('name')
                 ->label(__('filament-jaga::filament-jaga.fields.name'))
                 ->required()
@@ -62,28 +83,69 @@ class RoleResource extends Resource
                 ->required()
                 ->maxLength(255)
                 ->disabled(fn (string $context) => $context === 'edit'),
+        ];
 
-            Forms\Components\CheckboxList::make('permissions')
-                ->label(__('filament-jaga::filament-jaga.fields.permissions'))
-                ->relationship('permissions', 'name')
-                ->options(function () {
-                    return Permission::orderBy('group')->orderBy('name')
-                        ->get()
-                        ->mapWithKeys(fn ($p) => [$p->id => $p->description ?: $p->name])
-                        ->toArray();
-                })
-                ->columns(2),
+        // One collapsible Section per permission group (non-custom permissions)
+        $groups = Permission::where('is_custom', false)
+            ->whereNotNull('group')
+            ->orderBy('group')
+            ->distinct()
+            ->pluck('group');
 
-            Forms\Components\Repeater::make('wildcard_patterns')
-                ->label(__('filament-jaga::filament-jaga.fields.wildcard_patterns'))
+        foreach ($groups as $group) {
+            $slug = Str::slug($group, '_');
+            $groupPermissions = Permission::where('group', $group)
+                ->where('is_custom', false)
+                ->orderBy('name')
+                ->get();
+
+            $options = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+            $descriptions = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
+
+            $components[] = Section::make($group)
                 ->schema([
-                    Forms\Components\TextInput::make('pattern')
-                        ->required()
-                        ->placeholder('e.g. reports.*'),
+                    Forms\Components\CheckboxList::make("permissions_{$slug}")
+                        ->hiddenLabel()
+                        ->options($options)
+                        ->descriptions($descriptions)
+                        ->columns(2)
+                        ->bulkToggleable(),
                 ])
-                ->addActionLabel('Add Wildcard Pattern')
-                ->defaultItems(0),
-        ]);
+                ->collapsible()
+                ->collapsed();
+        }
+
+        // Custom permissions in their own section
+        $customPermissions = Permission::where('is_custom', true)->orderBy('name')->get();
+
+        if ($customPermissions->isNotEmpty()) {
+            $customOptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+            $customDescriptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
+
+            $components[] = Section::make(__('filament-jaga::filament-jaga.fields.custom_permissions'))
+                ->schema([
+                    Forms\Components\CheckboxList::make('permissions_custom')
+                        ->hiddenLabel()
+                        ->options($customOptions)
+                        ->descriptions($customDescriptions)
+                        ->columns(2)
+                        ->bulkToggleable(),
+                ])
+                ->collapsible()
+                ->collapsed();
+        }
+
+        $components[] = Forms\Components\Repeater::make('wildcard_patterns')
+            ->label(__('filament-jaga::filament-jaga.fields.wildcard_patterns'))
+            ->schema([
+                Forms\Components\TextInput::make('pattern')
+                    ->required()
+                    ->placeholder('e.g. reports.*'),
+            ])
+            ->addActionLabel('Add Wildcard Pattern')
+            ->defaultItems(0);
+
+        return $schema->components($components);
     }
 
     public static function table(Table $table): Table

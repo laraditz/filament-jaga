@@ -6,6 +6,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laraditz\FilamentJaga\Resources\RoleResource;
 
 class EditRole extends EditRecord
@@ -19,6 +20,7 @@ class EditRole extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        // Load wildcard patterns
         $wildcards = DB::table(config('jaga.tables.role_permission'))
             ->where('role_id', $this->record->id)
             ->whereNull('permission_id')
@@ -28,15 +30,33 @@ class EditRole extends EditRecord
             ->toArray();
 
         $data['wildcard_patterns'] = $wildcards;
+
+        // Split permissions into per-group fields to match the form structure
+        $permissions = $this->record->permissions()->get();
+
+        $permissions->where('is_custom', false)->groupBy('group')->each(function ($groupPerms, $group) use (&$data) {
+            $slug = Str::slug($group, '_');
+            $data["permissions_{$slug}"] = $groupPerms->pluck('id')->toArray();
+        });
+
+        $customIds = $permissions->where('is_custom', true)->pluck('id')->toArray();
+
+        if (! empty($customIds)) {
+            $data['permissions_custom'] = $customIds;
+        }
+
         return $data;
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        $wildcards = $data['wildcard_patterns'] ?? [];
+        $wildcards     = $data['wildcard_patterns'] ?? [];
+        $permissionIds = RoleResource::collectPermissionIds($data);
         unset($data['wildcard_patterns']);
 
         $record->update($data);
+
+        $record->permissions()->sync($permissionIds);
 
         $table = config('jaga.tables.role_permission');
         DB::table($table)->where('role_id', $record->id)->whereNull('permission_id')->delete();

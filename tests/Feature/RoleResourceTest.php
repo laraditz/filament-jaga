@@ -59,9 +59,9 @@ it('assigns permissions to a role on create', function () {
 
     livewire(CreateRole::class)
         ->fillForm([
-            'name'        => 'Writer',
-            'slug'        => 'writer',
-            'permissions' => [$permission->id],
+            'name'             => 'Writer',
+            'slug'             => 'writer',
+            'permissions_posts' => [$permission->id],
         ])
         ->call('create')
         ->assertHasNoFormErrors();

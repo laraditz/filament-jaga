@@ -16,19 +16,20 @@ class CreateRole extends CreateRecord
     {
         $data['slug']       = $data['slug'] ?? Str::slug($data['name']);
         $data['guard_name'] = config('jaga.guard', 'web');
+
         return $data;
     }
 
     protected function handleRecordCreation(array $data): Model
     {
-        $wildcards   = $data['wildcard_patterns'] ?? [];
-        $permissions = $data['permissions'] ?? [];
-        unset($data['wildcard_patterns'], $data['permissions']);
+        $wildcards     = $data['wildcard_patterns'] ?? [];
+        $permissionIds = RoleResource::collectPermissionIds($data);
+        unset($data['wildcard_patterns']);
 
         $role = static::getModel()::create($data);
 
-        if (! empty($permissions)) {
-            $role->permissions()->sync($permissions);
+        if (! empty($permissionIds)) {
+            $role->permissions()->sync($permissionIds);
         }
 
         $this->syncWildcards($role, $wildcards);

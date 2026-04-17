@@ -51,6 +51,7 @@ return [
         'is_auto_description' => 'Auto Description',
         'wildcard_patterns'   => 'Wildcard Patterns',
         'permissions'         => 'Permissions',
+        'custom_permissions'  => 'Custom Permissions',
         'permissions_count'   => 'Permissions',
         'created_at'          => 'Created',
     ],
