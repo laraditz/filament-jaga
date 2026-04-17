@@ -36,8 +36,16 @@ return [
         ],
     ],
 
+    'tabs' => [
+        'route_permissions'  => 'Route Permissions',
+        'custom_permissions' => 'Custom Permissions',
+        'wildcard_patterns'  => 'Wildcard Patterns',
+        'wildcard_hint'      => 'Wildcard patterns grant access to any permission matching a glob-style pattern (e.g. reports.*). Useful for covering future permissions without editing the role again.',
+    ],
+
     'actions' => [
-        'assign_user' => 'Assign User',
+        'assign_user'   => 'Assign User',
+        'add_wildcard'  => 'Add Wildcard Pattern',
     ],
 
     'fields' => [

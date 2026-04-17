@@ -6,6 +6,8 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -68,7 +70,75 @@ class RoleResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $components = [
+        $groups = Permission::where('is_custom', false)
+            ->whereNotNull('group')
+            ->orderBy('group')
+            ->distinct()
+            ->pluck('group');
+
+        $customPermissions = Permission::where('is_custom', true)->orderBy('name')->get();
+        $hasCustom         = $customPermissions->isNotEmpty();
+
+        // --- Route Permissions tab ---
+        $routeTabComponents = [];
+
+        if ($groups->isNotEmpty()) {
+            $routeTabComponents[] = Forms\Components\Toggle::make('select_all_permissions')
+                ->label(__('filament-jaga::filament-jaga.fields.select_all_permissions'))
+                ->live()
+                ->dehydrated(false)
+                ->columnSpanFull()
+                ->afterStateUpdated(function (bool $state, callable $set) use ($groups) {
+                    foreach ($groups as $group) {
+                        $slug = Str::slug($group, '_');
+                        $set("permissions_{$slug}", $state
+                            ? Permission::where('group', $group)->where('is_custom', false)->pluck('id')->toArray()
+                            : []
+                        );
+                    }
+                });
+
+            foreach ($groups as $group) {
+                $slug             = Str::slug($group, '_');
+                $groupPermissions = Permission::where('group', $group)
+                    ->where('is_custom', false)
+                    ->orderBy('name')
+                    ->get();
+
+                $options      = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+                $descriptions = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
+
+                $routeTabComponents[] = Section::make($group)
+                    ->schema([
+                        Forms\Components\CheckboxList::make("permissions_{$slug}")
+                            ->hiddenLabel()
+                            ->options($options)
+                            ->descriptions($descriptions)
+                            ->columns(2)
+                            ->bulkToggleable(),
+                    ])
+                    ->collapsible()
+                    ->columnSpanFull();
+            }
+        }
+
+        // --- Custom Permissions tab ---
+        $customTabComponents = [];
+
+        if ($hasCustom) {
+            $customOptions      = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
+            $customDescriptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
+
+            $customTabComponents[] = Forms\Components\CheckboxList::make('permissions_custom')
+                ->hiddenLabel()
+                ->options($customOptions)
+                ->descriptions($customDescriptions)
+                ->columns(2)
+                ->bulkToggleable()
+                ->columnSpanFull();
+        }
+
+        return $schema->components([
             Forms\Components\TextInput::make('name')
                 ->label(__('filament-jaga::filament-jaga.fields.name'))
                 ->required()
@@ -83,97 +153,38 @@ class RoleResource extends Resource
                 ->required()
                 ->maxLength(255)
                 ->disabled(fn (string $context) => $context === 'edit'),
-        ];
 
-        // One Section per permission group (non-custom permissions)
-        $groups = Permission::where('is_custom', false)
-            ->whereNotNull('group')
-            ->orderBy('group')
-            ->distinct()
-            ->pluck('group');
+            Tabs::make('permissions_tabs')
+                ->tabs([
+                    Tab::make(__('filament-jaga::filament-jaga.tabs.route_permissions'))
+                        ->icon('heroicon-o-globe-alt')
+                        ->schema($routeTabComponents),
 
-        $allGroupSlugs = $groups->map(fn ($g) => Str::slug($g, '_'))->toArray();
-        $hasCustom     = Permission::where('is_custom', true)->exists();
+                    Tab::make(__('filament-jaga::filament-jaga.tabs.custom_permissions'))
+                        ->icon('heroicon-o-wrench-screwdriver')
+                        ->schema($customTabComponents),
 
-        // Select All / Deselect All toggle
-        if ($groups->isNotEmpty() || $hasCustom) {
-            $components[] = Forms\Components\Toggle::make('select_all_permissions')
-                ->label(__('filament-jaga::filament-jaga.fields.select_all_permissions'))
-                ->live()
-                ->dehydrated(false)
-                ->columnSpanFull()
-                ->afterStateUpdated(function (bool $state, callable $set) use ($groups, $hasCustom) {
-                    foreach ($groups as $group) {
-                        $slug = Str::slug($group, '_');
-                        $set("permissions_{$slug}", $state
-                            ? Permission::where('group', $group)->where('is_custom', false)->pluck('id')->toArray()
-                            : []
-                        );
-                    }
+                    Tab::make(__('filament-jaga::filament-jaga.tabs.wildcard_patterns'))
+                        ->icon('heroicon-o-variable')
+                        ->schema([
+                            Forms\Components\Placeholder::make('wildcard_hint')
+                                ->hiddenLabel()
+                                ->content(__('filament-jaga::filament-jaga.tabs.wildcard_hint')),
 
-                    if ($hasCustom) {
-                        $set('permissions_custom', $state
-                            ? Permission::where('is_custom', true)->pluck('id')->toArray()
-                            : []
-                        );
-                    }
-                });
-        }
-
-        foreach ($groups as $group) {
-            $slug             = Str::slug($group, '_');
-            $groupPermissions = Permission::where('group', $group)
-                ->where('is_custom', false)
-                ->orderBy('name')
-                ->get();
-
-            $options      = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
-            $descriptions = $groupPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
-
-            $components[] = Section::make($group)
-                ->schema([
-                    Forms\Components\CheckboxList::make("permissions_{$slug}")
-                        ->hiddenLabel()
-                        ->options($options)
-                        ->descriptions($descriptions)
-                        ->columns(2)
-                        ->bulkToggleable(),
+                            Forms\Components\Repeater::make('wildcard_patterns')
+                                ->hiddenLabel()
+                                ->schema([
+                                    Forms\Components\TextInput::make('pattern')
+                                        ->required()
+                                        ->placeholder('e.g. reports.*'),
+                                ])
+                                ->addActionLabel(__('filament-jaga::filament-jaga.actions.add_wildcard'))
+                                ->defaultItems(0)
+                                ->columnSpanFull(),
+                        ]),
                 ])
-                ->collapsible()
-                ->columnSpanFull();
-        }
-
-        // Custom permissions in their own section
-        $customPermissions = Permission::where('is_custom', true)->orderBy('name')->get();
-
-        if ($customPermissions->isNotEmpty()) {
-            $customOptions      = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->name])->toArray();
-            $customDescriptions = $customPermissions->mapWithKeys(fn ($p) => [$p->id => $p->uri ?: ''])->toArray();
-
-            $components[] = Section::make(__('filament-jaga::filament-jaga.fields.custom_permissions'))
-                ->schema([
-                    Forms\Components\CheckboxList::make('permissions_custom')
-                        ->hiddenLabel()
-                        ->options($customOptions)
-                        ->descriptions($customDescriptions)
-                        ->columns(2)
-                        ->bulkToggleable(),
-                ])
-                ->collapsible()
-                ->columnSpanFull();
-        }
-
-        $components[] = Forms\Components\Repeater::make('wildcard_patterns')
-            ->label(__('filament-jaga::filament-jaga.fields.wildcard_patterns'))
-            ->schema([
-                Forms\Components\TextInput::make('pattern')
-                    ->required()
-                    ->placeholder('e.g. reports.*'),
-            ])
-            ->addActionLabel('Add Wildcard Pattern')
-            ->defaultItems(0);
-
-        return $schema->components($components);
+                ->columnSpanFull(),
+        ]);
     }
 
     public static function table(Table $table): Table
