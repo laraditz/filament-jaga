@@ -4,13 +4,13 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
 [![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
-<p align="center"><img src="https://github.com/user-attachments/assets/9b1be32d-5a7f-4131-b8b7-58e06cd1f50f" alt="Filament Jaga" width="100"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/f6549d3680939ea1df6a04d1d118e8ec0230c4a7/uploads/2026-04-17T13-54-58-603Z-isdt9fsi7.png" alt="Filament Jaga" width="100"></p>
 
 A **FilamentPHP v5** plugin for managing roles and permissions, powered by [laraditz/jaga](https://github.com/laraditz/jaga). Simple to set up. Easy to extend.
 
 ## 📸 Preview
 
-<p align="center"><img src="https://github.com/user-attachments/assets/c133cfe3-e8f7-4c09-9e94-c7d39e94d606" alt="Filament Jaga Preview"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/edd63bc33759e665b99394754340edc4f1a279e0/uploads/2026-04-17T13-56-24-719Z-3u4uyd235.png" alt="Filament Jaga Preview"></p>
 
 ## ✨ Features
 
@@ -141,11 +141,12 @@ FilamentJagaPlugin::make()
     ->disableResource('permissions') // hide the Permissions resource
 ```
 
-## 🗄️ Cache
+## 🗄️ Cache & Sync
 
 Jaga caches permission data for performance. After making changes to permissions or roles, manage the cache with:
 
 ```bash
+php artisan jaga:sync    # discover and sync route permissions to the database
 php artisan jaga:cache   # rebuild the permission cache
 php artisan jaga:clear   # clear the permission cache
 ```
@@ -157,6 +158,10 @@ php artisan vendor:publish --tag=filament-jaga-lang
 ```
 
 Language files will be published to `lang/vendor/filament-jaga`.
+
+## 📦 Related
+
+This plugin is a UI layer on top of [laraditz/jaga](https://github.com/laraditz/jaga). Head over there for the full documentation on permissions, roles, middleware usage, and more.
 
 ## License
 
