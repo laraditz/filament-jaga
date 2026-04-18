@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
 [![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
-<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/f6549d3680939ea1df6a04d1d118e8ec0230c4a7/uploads/2026-04-17T13-54-58-603Z-isdt9fsi7.png" alt="Filament Jaga" width="100"></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/2bc9f861-05a4-419a-88fd-d80d05149e1e" alt="Filament Jaga" width="130"></p>
 
 A **FilamentPHP v5** plugin for managing roles and permissions, powered by [laraditz/jaga](https://github.com/laraditz/jaga). Simple to set up. Easy to extend.
 
@@ -49,7 +49,14 @@ A **FilamentPHP v5** plugin for managing roles and permissions, powered by [lara
 composer require laraditz/filament-jaga
 ```
 
-**2.** Add the `HasRoles` trait to your `User` model:
+**2.** Publish the migrations and run them:
+
+```bash
+php artisan vendor:publish --tag=jaga-migrations
+php artisan migrate
+```
+
+**3.** Add the `HasRoles` trait to your `User` model:
 
 ```php
 use Laraditz\Jaga\Traits\HasRoles;
@@ -60,7 +67,7 @@ class User extends Authenticatable
 }
 ```
 
-**3.** Register the plugin in your Filament panel provider:
+**4.** Register the plugin in your Filament panel provider:
 
 ```php
 use Laraditz\FilamentJaga\FilamentJagaPlugin;
@@ -72,7 +79,7 @@ public function panel(Panel $panel): Panel
 }
 ```
 
-**4.** Run the installer:
+**5.** Run the installer:
 
 ```bash
 php artisan jaga:install
@@ -95,6 +102,23 @@ To re-assign the role without re-seeding:
 ```bash
 php artisan jaga:install --assign --email=admin@example.com
 ```
+
+**6.** Protect your routes with the `jaga` middleware:
+
+```php
+// routes/web.php
+Route::middleware(['auth', 'jaga'])->group(function () {
+    Route::resource('posts', PostController::class);
+});
+```
+
+**7.** Sync your named routes to the permissions table:
+
+```bash
+php artisan jaga:sync
+```
+
+After syncing, all your named routes will appear as permissions in the Filament panel, ready to be assigned to roles.
 
 ## ⚙️ Configuration
 
