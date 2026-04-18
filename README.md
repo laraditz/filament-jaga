@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
 [![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
-<p align="center"><img src="https://github.com/user-attachments/assets/2bc9f861-05a4-419a-88fd-d80d05149e1e" alt="Filament Jaga" width="130"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/49149e3c027039e5e04d365691a002a26c6cf466/uploads/2026-04-18T03-57-46-852Z-32gh15jba.png" alt="Filament Jaga" width="130"></p>
 
 A **FilamentPHP v5** plugin for managing roles and permissions, powered by [laraditz/jaga](https://github.com/laraditz/jaga). Simple to set up. Easy to extend.
 
