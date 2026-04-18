@@ -49,7 +49,14 @@ A **FilamentPHP v5** plugin for managing roles and permissions, powered by [lara
 composer require laraditz/filament-jaga
 ```
 
-**2.** Add the `HasRoles` trait to your `User` model:
+**2.** Publish the migrations and run them:
+
+```bash
+php artisan vendor:publish --tag=jaga-migrations
+php artisan migrate
+```
+
+**3.** Add the `HasRoles` trait to your `User` model:
 
 ```php
 use Laraditz\Jaga\Traits\HasRoles;
@@ -60,7 +67,7 @@ class User extends Authenticatable
 }
 ```
 
-**3.** Register the plugin in your Filament panel provider:
+**4.** Register the plugin in your Filament panel provider:
 
 ```php
 use Laraditz\FilamentJaga\FilamentJagaPlugin;
@@ -72,7 +79,7 @@ public function panel(Panel $panel): Panel
 }
 ```
 
-**4.** Run the installer:
+**5.** Run the installer:
 
 ```bash
 php artisan jaga:install
@@ -95,6 +102,23 @@ To re-assign the role without re-seeding:
 ```bash
 php artisan jaga:install --assign --email=admin@example.com
 ```
+
+**6.** Protect your routes with the `jaga` middleware:
+
+```php
+// routes/web.php
+Route::middleware(['auth', 'jaga'])->group(function () {
+    Route::resource('posts', PostController::class);
+});
+```
+
+**7.** Sync your named routes to the permissions table:
+
+```bash
+php artisan jaga:sync
+```
+
+After syncing, all your named routes will appear as permissions in the Filament panel, ready to be assigned to roles.
 
 ## ⚙️ Configuration
 
