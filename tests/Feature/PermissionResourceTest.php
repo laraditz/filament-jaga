@@ -135,6 +135,23 @@ it('cannot delete a route permission', function () {
     expect(PermissionResource::canDelete($permission))->toBeFalse();
 });
 
+// --- Sync action ---
+
+it('has a sync permissions header action', function () {
+    livewire(ListPermissions::class)
+        ->assertActionExists('sync');
+});
+
+it('dispatches SyncPermissionsJob and notifies when sync is confirmed', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+
+    livewire(ListPermissions::class)
+        ->callAction('sync')
+        ->assertNotified();
+
+    \Illuminate\Support\Facades\Queue::assertPushed(\Laraditz\Jaga\Jobs\SyncPermissionsJob::class);
+});
+
 // --- Edit page ---
 
 it('renders the edit page', function () {
