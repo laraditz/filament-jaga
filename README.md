@@ -31,6 +31,7 @@ A **FilamentPHP v5** plugin for managing roles and permissions, powered by [lara
 - **Delete** — remove custom permissions (auto-discovered route permissions cannot be deleted)
 - **Roles tab** — view, attach, and detach roles assigned to a permission
 - **Users tab** — view, attach, and detach users assigned directly to a permission
+- **Sync button** — trigger a permission sync from the panel without touching the CLI
 
 ## 📋 Requirements
 
@@ -174,6 +175,8 @@ php artisan jaga:sync    # discover and sync route permissions to the database
 php artisan jaga:cache   # rebuild the permission cache
 php artisan jaga:clear   # clear the permission cache
 ```
+
+You can also trigger a sync directly from the Filament panel — head to the Permissions page and click the **Sync Permissions** button. This dispatches the sync job to the queue without needing CLI access.
 
 ## 🌐 Publishing Translations
 
