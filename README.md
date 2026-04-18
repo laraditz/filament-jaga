@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/laraditz/filament-jaga.svg?style=flat-square)](https://packagist.org/packages/laraditz/filament-jaga)
 [![License](https://img.shields.io/packagist/l/laraditz/filament-jaga?style=flat-square)](./LICENSE.md)
 
-<p align="center"><img src="https://github.com/user-attachments/assets/2bc9f861-05a4-419a-88fd-d80d05149e1e" alt="Filament Jaga" width="130"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/free-whiteboard-online/Free-Erasorio-Alternative-for-Collaborative-Design/49149e3c027039e5e04d365691a002a26c6cf466/uploads/2026-04-18T03-57-46-852Z-32gh15jba.png" alt="Filament Jaga" width="130"></p>
 
 A **FilamentPHP v5** plugin for managing roles and permissions, powered by [laraditz/jaga](https://github.com/laraditz/jaga). Simple to set up. Easy to extend.
 
@@ -31,6 +31,7 @@ A **FilamentPHP v5** plugin for managing roles and permissions, powered by [lara
 - **Delete** — remove custom permissions (auto-discovered route permissions cannot be deleted)
 - **Roles tab** — view, attach, and detach roles assigned to a permission
 - **Users tab** — view, attach, and detach users assigned directly to a permission
+- **Sync button** — trigger a permission sync from the panel without touching the CLI
 
 ## 📋 Requirements
 
@@ -174,6 +175,8 @@ php artisan jaga:sync    # discover and sync route permissions to the database
 php artisan jaga:cache   # rebuild the permission cache
 php artisan jaga:clear   # clear the permission cache
 ```
+
+You can also trigger a sync directly from the Filament panel — head to the Permissions page and click the **Sync Permissions** button. This dispatches the sync job to the queue without needing CLI access.
 
 ## 🌐 Publishing Translations
 

@@ -83,6 +83,13 @@ return [
         'created_at'          => 'Created',
     ],
 
+    'sync_permissions' => [
+        'label'                => 'Sync Permissions',
+        'modal_heading'        => 'Sync Permissions',
+        'modal_description'    => 'This will discover new routes, update existing permissions, and soft-delete any stale route-based permissions. Custom permissions are never affected.',
+        'success_notification' => 'Permissions sync has been queued.',
+    ],
+
     'install' => [
         'enter_email'    => 'Enter the email of the user to assign the super-admin role',
         'user_not_found' => 'No user found with that email. Please try again.',
