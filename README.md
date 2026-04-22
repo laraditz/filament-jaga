@@ -21,6 +21,13 @@ A **FilamentPHP v5** plugin for managing roles and permissions, powered by [lara
 - Add wildcard patterns (e.g. `posts.*`) for broad permission grants
 - Edit or delete existing roles
 
+### 👤 UserRolesField
+
+- Drop a single form field into your own User resource to assign roles and direct permissions
+- Roles section with checkbox list (name + slug hint)
+- Permissions section grouped by permission group
+- Zero extra wiring — saves automatically when the form saves
+
 ### 🔑 Permissions
 
 - **Tabs** — switch between All, Route (auto-discovered), and Custom permissions
@@ -165,6 +172,24 @@ FilamentJagaPlugin::make()
     ->userModel(\App\Models\Admin::class)
     ->disableResource('permissions') // hide the Permissions resource
 ```
+
+## 👤 UserRolesField
+
+Drop `UserRolesField` into your own User resource to let admins assign roles and direct permissions from the User edit form — no extra observers or lifecycle hooks needed.
+
+```php
+use Laraditz\FilamentJaga\Forms\Components\UserRolesField;
+
+public static function form(Schema $schema): Schema
+{
+    return $schema->components([
+        // ... your other fields ...
+        UserRolesField::make('jaga_roles'),
+    ]);
+}
+```
+
+The field renders two sections: a **Roles** checkbox list and a **Direct Permissions** checkbox list grouped by permission group. All changes are persisted automatically when the form saves.
 
 ## 🗄️ Cache & Sync
 
