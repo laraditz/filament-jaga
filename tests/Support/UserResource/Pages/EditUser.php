@@ -17,4 +17,9 @@ class EditUser extends EditRecord
             UserRolesField::make('jaga_roles'),
         ]);
     }
+
+    protected function getRedirectUrl(): ?string
+    {
+        return $this->getResourceUrl('edit', ['record' => $this->getRecord()]);
+    }
 }
