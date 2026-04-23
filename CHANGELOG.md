@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-23
+
+### Added
+
+- **`UserRolesField`** form component — drop into any User resource to assign roles from the edit form with zero extra wiring; roles are persisted automatically when the form saves
+
+### Changed
+
+- `UserRolesField` now extends Filament's native `CheckboxList` for proper Filament styling; the custom Blade view has been removed
+- `UserRolesField` is simplified to role assignment only — the direct permissions section has been removed
+- README: added Filament panel middleware documentation (`->authMiddleware(['jaga'])`)
+- README: corrected `UserRolesField` usage example with the Filament v5 `use Filament\Schemas\Schema` import
+
 ## [1.0.3] - 2026-04-18
 
 ### Added

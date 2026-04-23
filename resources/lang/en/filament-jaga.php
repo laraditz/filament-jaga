@@ -90,6 +90,11 @@ return [
         'success_notification' => 'Permissions sync has been queued.',
     ],
 
+    'user_roles_field' => [
+        'roles_label'       => 'Roles',
+        'permissions_label' => 'Direct Permissions',
+    ],
+
     'install' => [
         'enter_email'    => 'Enter the email of the user to assign the super-admin role',
         'user_not_found' => 'No user found with that email. Please try again.',
