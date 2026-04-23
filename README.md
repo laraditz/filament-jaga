@@ -74,15 +74,17 @@ class User extends Authenticatable
 }
 ```
 
-**4.** Register the plugin in your Filament panel provider:
+**4.** Register the plugin and protect your panel in your Filament panel provider:
 
 ```php
 use Laraditz\FilamentJaga\FilamentJagaPlugin;
+use Laraditz\Jaga\Middleware\JagaMiddleware;
 
 public function panel(Panel $panel): Panel
 {
     return $panel
-        ->plugin(FilamentJagaPlugin::make());
+        ->plugin(FilamentJagaPlugin::make())
+        ->authMiddleware([JagaMiddleware::class]);
 }
 ```
 
@@ -110,30 +112,14 @@ To re-assign the role without re-seeding:
 php artisan jaga:install --assign --email=admin@example.com
 ```
 
-**6.** Protect your routes with the `jaga` middleware:
-
-**Regular routes** (`routes/web.php`):
+**6.** Protect your app routes with the `jaga` middleware:
 
 ```php
+// routes/web.php
 Route::middleware(['auth', 'jaga'])->group(function () {
     Route::resource('posts', PostController::class);
 });
 ```
-
-**Filament panel** — add `jaga` to `authMiddleware` in your panel provider:
-
-```php
-use Laraditz\FilamentJaga\FilamentJagaPlugin;
-
-public function panel(Panel $panel): Panel
-{
-    return $panel
-        ->plugin(FilamentJagaPlugin::make())
-        ->authMiddleware(['jaga']);
-}
-```
-
-This applies the jaga permission check to all authenticated panel routes.
 
 **7.** Sync your named routes to the permissions table:
 
